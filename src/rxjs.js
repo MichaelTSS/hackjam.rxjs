@@ -14,7 +14,14 @@ export class Observable {
  * @param args
  * @returns {Observable}
  */
-Observable.of = (...args) => {};
+Observable.of = (...args) => {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    args.forEach(x => nextFn(x))
+    completeFn()
+  }
+  return o
+};
 
 /**
  * Static creation operators : interval
@@ -26,6 +33,15 @@ Observable.of = (...args) => {};
  * @returns {Observable}
  */
 Observable.interval = (period) => {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn) => {
+    let count = 0
+    const timeout = setInterval(function () {
+      nextFn(count++)
+    }, period)
+    return clearInterval.bind(null, timeout)
+  }
+  return o
 };
 
 
@@ -41,6 +57,7 @@ Observable.interval = (period) => {
  * @returns {Observable}
  */
 Observable.fromArray = (args = []) => {
+  return Observable.of(...args)
 };
 
 /**
@@ -53,6 +70,13 @@ Observable.fromArray = (args = []) => {
  * @returns {Observable}
  */
 Observable.fromPromise = (promise = {}) => {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    promise
+      .then(val => nextFn(val))
+      .then(() => completeFn())
+  }
+  return o
 };
 
 /**
@@ -65,6 +89,20 @@ Observable.fromPromise = (promise = {}) => {
  * @returns {Observable}
  */
 Observable.from = (input) => {
+  if (input && typeof input.then === 'function') {
+    return Observable.fromPromise(input)
+  }
+  if (Array.isArray(input)) {
+    return Observable.of(...input)
+  }
+  if (input && typeof input === 'string') {
+    const newInput = input.split('')
+    return Observable.of(...newInput)
+  }
+  if (input && input instanceof Map) {
+    const newInput = input.entries()
+    return Observable.of(...newInput)
+  }
 };
 
 /**
@@ -79,6 +117,13 @@ Observable.from = (input) => {
  */
 
 Observable.prototype.map = Observable.map = function (projection, thisArgs) {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    this.subscribe(val => {
+      nextFn(projection(val))
+    }, errorFn, completeFn)
+  }
+  return o
 };
 
 /**
