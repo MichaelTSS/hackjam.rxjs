@@ -24,6 +24,7 @@ describe('What is an Observable', () => {
     expect(typeof observer.error).equal('function');
     expect(typeof observer.complete).equal('function');
   });
+
   it('A Producer is a function that takes an observer as parameter and throws/produces values', () => {
     const nextSpy = sinon.spy();
     const errorSpy = sinon.spy();

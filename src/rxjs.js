@@ -6,6 +6,17 @@ export class Observable {
 }
 
 /**
+ * Static creation operators : of
+ * Emits the arguments you provide, then completes.
+ *
+ * @see {@link https://www.learnrxjs.io/operators/creation/of.html } for examples.
+ *
+ * @param args
+ * @returns {Observable}
+ */
+Observable.of = (...args) => {};
+
+/**
  * Static creation operators : interval
  * Emit numbers in sequence based on provided timeframe.
  *
@@ -17,17 +28,7 @@ export class Observable {
 Observable.interval = (period) => {
 };
 
-/**
- * Static creation operators : of
- * Emits the arguments you provide, then completes.
- *
- * @see {@link https://www.learnrxjs.io/operators/creation/of.html } for examples.
- *
- * @param args
- * @returns {Observable}
- */
-Observable.of = (...args) => {
-};
+
 
 /**
  * Static creation operators : fromArray
