@@ -119,9 +119,15 @@ Observable.from = (input) => {
 Observable.prototype.map = Observable.map = function (projection, thisArgs) {
   const o = Object.create(Observable.prototype)
   o.subscribe = (nextFn, errorFn, completeFn) => {
-    this.subscribe(val => {
-      nextFn(projection(val))
-    }, errorFn, completeFn)
+    if (thisArgs && thisArgs instanceof Observable) {
+      thisArgs.subscribe(val => {
+        nextFn(projection(val))
+      }, errorFn, completeFn)
+    } else {
+      this.subscribe(val => {
+        nextFn(projection(val))
+      }, errorFn, completeFn)
+    }
   }
   return o
 };
@@ -137,6 +143,19 @@ Observable.prototype.map = Observable.map = function (projection, thisArgs) {
  * @returns {Observable}
  */
 Observable.prototype.filter = Observable.filter = function (predicate, thisArgs) {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    if (thisArgs && thisArgs instanceof Observable) {
+      thisArgs.subscribe(val => {
+        if (predicate(val)) nextFn(val)
+      }, errorFn, completeFn)
+    } else {
+      this.subscribe(val => {
+        if (predicate(val)) nextFn(val)
+      }, errorFn, completeFn)
+    }
+  }
+  return o
 };
 
 /**
@@ -149,6 +168,13 @@ Observable.prototype.filter = Observable.filter = function (predicate, thisArgs)
  * @returns {Observable}
  */
 Observable.prototype.mapTo = function (constant) {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    this.subscribe(() => {
+      nextFn(constant)
+    }, errorFn, completeFn)
+  }
+  return o
 };
 
 /**
@@ -163,6 +189,8 @@ Observable.prototype.mapTo = function (constant) {
  * @returns {Observable}
  */
 Observable.prototype.do = function (next, error, complete) {
+  next()
+  return this
 };
 
 
@@ -176,6 +204,14 @@ Observable.prototype.do = function (next, error, complete) {
  * @returns {Observable}
  */
 Observable.prototype.startWith = function (...args) {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    args.forEach(x => nextFn(x))
+    this.subscribe(val => {
+      nextFn(val)
+    }, errorFn, completeFn)
+  }
+  return o
 };
 
 /**
@@ -188,6 +224,30 @@ Observable.prototype.startWith = function (...args) {
  * @returns {Observable}
  */
 Observable.prototype.concat = Observable.concat = function (...observables) {
+  const o = Object.create(Observable.prototype)
+  const that = this
+  function callback() {
+    let isDone = true // necessary hack so observables can emit sequentially
+    observables.forEach(obs => {
+      if (isDone) {
+        isDone = false
+        obs.subscribe(v => nextFn(v), errorFn, () => {
+          isDone = true
+        })
+      }
+    })
+  }
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    if (typeof that.subscribe === 'function') {
+      this.subscribe(val => {
+        nextFn(val)
+      }, errorFn, callback)
+    } else {
+      callback() // for static execution
+    }
+    completeFn()
+  }
+  return o
 };
 
 /**
@@ -200,6 +260,14 @@ Observable.prototype.concat = Observable.concat = function (...observables) {
  * @returns {Observable}
  */
 Observable.prototype.take = function (count) {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    let i = 0;
+    this.subscribe(val => {
+      if (++i <= count) nextFn(val)
+    }, errorFn, completeFn)
+  }
+  return o
 };
 
 /**
@@ -212,6 +280,22 @@ Observable.prototype.take = function (count) {
  * @returns {Observable}
  */
 Observable.prototype.first = function (predicate) {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    let bool = true;
+    this.subscribe(val => {
+      if (bool) {
+        if ((typeof predicate === 'function') && predicate(val)) {
+          bool = false
+          nextFn(val)
+        } else if (predicate === undefined) {
+          bool = false
+          nextFn(val)
+        }
+      }
+    }, errorFn, completeFn)
+  }
+  return o
 };
 
 /**
@@ -224,4 +308,18 @@ Observable.prototype.first = function (predicate) {
  * @returns {Observable}
  */
 Observable.prototype.skip = function (the) {
+  const o = Object.create(Observable.prototype)
+  o.subscribe = (nextFn, errorFn, completeFn) => {
+    let bool = false;
+    this.subscribe(val => {
+      if (bool) {
+        nextFn(val)
+      } else {
+        if (val === the) {
+          bool = true
+        }
+      }
+    }, errorFn, completeFn)
+  }
+  return o
 };
