@@ -225,25 +225,24 @@ Observable.prototype.startWith = function (...args) {
  */
 Observable.prototype.concat = Observable.concat = function (...observables) {
   const o = Object.create(Observable.prototype)
-  const that = this
-  function callback() {
-    let isDone = true // necessary hack so observables can emit sequentially
-    observables.forEach(obs => {
-      if (isDone) {
-        isDone = false
-        obs.subscribe(v => nextFn(v), errorFn, () => {
-          isDone = true
-        })
-      }
-    })
-  }
   o.subscribe = (nextFn, errorFn, completeFn) => {
-    if (typeof that.subscribe === 'function') {
+    if (typeof this.subscribe === 'function') {
       this.subscribe(val => {
         nextFn(val)
       }, errorFn, callback)
     } else {
-      callback() // for static execution
+      callback()
+    }
+    function callback() {
+      let isDone = true // necessary hack so observables can emit sequentially
+      observables.forEach(obs => {
+        if (isDone) {
+          isDone = false
+          obs.subscribe(v => nextFn(v), errorFn, () => {
+            isDone = true
+          })
+        }
+      })
     }
     completeFn()
   }
